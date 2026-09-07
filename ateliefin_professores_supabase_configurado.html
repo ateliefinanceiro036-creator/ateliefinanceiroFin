@@ -158,10 +158,14 @@ async function fetchData(){
  const [a,b,c]=await Promise.all([supabaseClient.from("teams").select("*").order("name"),supabaseClient.from("products").select("*").order("name"),supabaseClient.from("sales").select("*, teams(name), products(name)").order("created_at",{ascending:false})]);
  if(a.error)throw a.error;if(b.error)throw b.error;if(c.error)throw c.error;groups=a.data||[];stock=b.data||[];sales=c.data||[];render();
 }
+const TEACHER_PASSWORD="atelie2026"; // <- troque aqui para mudar a senha do professor
 async function loginProfessor(){
  const i=document.getElementById("teacherPassword"),e=document.getElementById("loginError"),p=i.value.trim();e.textContent="";
  if(!p){e.textContent="Digite a senha.";return;}
- try{const {data,error}=await supabaseClient.rpc("verify_teacher_password",{p_password:p});if(error)throw error;if(data!==true){e.textContent="Senha incorreta.";i.value="";i.focus();return;}loggedIn=true;document.getElementById("loginOverlay").style.display="none";document.getElementById("appShell").style.visibility="visible";await fetchData();}catch(x){console.error(x);e.textContent="Não foi possível validar a senha. Confira o Supabase.";}}
+ if(p!==TEACHER_PASSWORD){e.textContent="Senha incorreta.";i.value="";i.focus();return;}
+ loggedIn=true;document.getElementById("loginOverlay").style.display="none";document.getElementById("appShell").style.visibility="visible";
+ try{await fetchData();}catch(x){console.error(x);toast("Conectou, mas houve erro ao carregar os dados do Supabase.");}
+}
 function logoutProfessor(){loggedIn=false;document.getElementById("appShell").style.visibility="hidden";document.getElementById("loginOverlay").style.display="flex";document.getElementById("teacherPassword").value="";}
 async function addTeam(){const name=teamName.value.trim(),members=teamMembers.value.trim(),password=teamPass.value.trim();if(!name||!members||!password)return toast("Preencha todos os campos.");try{const {error}=await supabaseClient.from("teams").insert({name,members,password});if(error)throw error;teamName.value=teamMembers.value=teamPass.value="";await fetchData();toast("Equipe cadastrada.");}catch(e){toast(e.message||"Erro ao cadastrar equipe.");}}
 async function updatePass(i,v){const g=groups[i],{error}=await supabaseClient.from("teams").update({password:v.trim()}).eq("id",g.id);if(error)toast("Erro ao atualizar senha.");}
