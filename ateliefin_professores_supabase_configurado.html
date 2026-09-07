@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ateliê Financeiro · Painel do Professor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+ --ink:#12100A;--ink-soft:#5A4E33;--linen:#F6F1E2;--linen-2:#EEE4C4;--linen-3:#E0CE96;
+ --card:#FAF6EA;--brass:#B8892A;--brass-soft:#D9B25C;--burgundy:#8C2F39;--green:#8A6D1E;
+ --text:#12100A;--text-dim:#6B6046;--border:#D8CBA0;--shadow:rgba(18,16,10,.12);
+ --display:'Fraunces',serif;--body:'Inter',sans-serif;--mono:'IBM Plex Mono',monospace
+}
+[data-theme=dark]{--ink:#F1E6C8;--ink-soft:#C9AF74;--linen:#0B0A07;--linen-2:#161309;--linen-3:#241E0D;
+--card:#141109;--brass:#E7C568;--brass-soft:#B8892A;--burgundy:#C4636E;--green:#D9B25C;
+--text:#F1E6C8;--text-dim:#9C8B5E;--border:#332A14;--shadow:rgba(0,0,0,.5)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{min-height:100%}
+body{font-family:var(--body);background:radial-gradient(circle,var(--linen-3) 1px,transparent 1px) 0 0/22px 22px,var(--linen);color:var(--text)}
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.sidebar{background:#0E0C07;color:#F1E6C8;padding:26px 18px;display:flex;flex-direction:column;gap:6px}
+.brand{font-family:var(--display);font-weight:600;font-size:20px}.brand small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#D9B25C;margin-top:4px}
+.stitch{height:0;border-top:1.5px dashed rgba(217,178,92,.45);margin:16px 0 18px}
+.navgroup-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#B8892A;margin:14px 4px 6px}
+.navitem{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:7px;color:#C9AF74;text-decoration:none;cursor:pointer;font-size:13.5px;font-weight:500;border:1px solid transparent}
+.navitem:hover,.navitem.active{background:rgba(217,178,92,.12);border-color:rgba(217,178,92,.3);color:#E7C568}
+.navitem .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.6}
+.sidebar-foot{margin-top:auto;padding-top:16px;font-family:var(--mono);font-size:10.5px;color:#7A6B44;display:flex;flex-direction:column;gap:8px}
+.year-chip{display:inline-flex;gap:6px;border:1px solid rgba(217,178,92,.25);padding:6px 10px;border-radius:20px;color:#C9AF74;width:fit-content}
+.year-chip .dot{width:6px;height:6px;border-radius:50%;background:#D9B25C}
+main{padding:28px 34px 60px;max-width:1250px}.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.page-title{font-family:var(--display);font-weight:600;font-size:29px}.top-actions{display:flex;gap:9px}
+.btn{font-family:var(--body);font-weight:600;font-size:13px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--brass-soft)}.btn.primary{background:var(--brass-soft);border-color:var(--brass-soft);color:#14110A}.btn.danger{color:var(--burgundy)}
+.grid{display:grid;gap:16px}.cols-4{grid-template-columns:repeat(4,1fr)}.cols-2{grid-template-columns:1fr 1fr}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 2px 10px var(--shadow)}
+.card h3{font-family:var(--display);font-weight:600;font-size:17px;margin-bottom:3px}.sub{color:var(--text-dim);font-size:12.5px;margin-bottom:14px}
+.kpi-label{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.kpi-value{font-family:var(--display);font-size:27px;font-weight:600}.kpi-delta{font-size:11px;font-family:var(--mono);color:var(--brass);margin-top:5px}
+.card.tag{position:relative}.card.tag:before{content:'';position:absolute;top:12px;left:12px;width:8px;height:8px;border-radius:50%;background:var(--linen);border:1.5px solid var(--brass-soft)}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);padding:10px 8px;border-bottom:1.5px solid var(--border)}
+td{padding:12px 8px;border-bottom:1px dashed var(--border);font-weight:500}tr:last-child td{border-bottom:none}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--linen);color:var(--text);font-family:var(--body);margin-bottom:12px}
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px}
+.pill{display:inline-flex;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}.ok{background:#B8892A1F;color:var(--brass)}.low{background:#8C2F391A;color:var(--burgundy)}.mid{background:#8A6D1E1F;color:var(--green)}
+.rank-row{display:flex;align-items:center;gap:12px;padding:11px 6px;border-bottom:1px dashed var(--border)}.rank-pos{font-family:var(--mono);width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--linen-2);font-weight:700}.rank-name{flex:1;font-weight:600;font-size:13px}.rank-name span{display:block;color:var(--text-dim);font-size:11px;font-weight:400}.rank-value{font-family:var(--mono);font-weight:600}
+.bar-track{height:5px;background:var(--linen-2);border-radius:3px;margin-top:6px;overflow:hidden}.bar-fill{height:100%;background:var(--brass-soft);border-radius:3px}
+.chart-box{height:270px}.view{display:none}.view.active{display:block;animation:fade .25s ease}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.toast{position:fixed;bottom:20px;right:20px;background:#0E0C07;color:#F1E6C8;padding:14px 18px;border-radius:9px;font-size:13px;font-weight:600;box-shadow:0 6px 20px var(--shadow);opacity:0;transform:translateY(20px);pointer-events:none;transition:.3s;z-index:20}.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:920px){.shell{grid-template-columns:1fr}.sidebar{position:relative}.cols-4,.cols-2{grid-template-columns:1fr}.sidebar{min-height:auto}main{padding:22px 16px 50px}}
+</style>
+
+<style>
+#teacherLock{position:fixed;inset:0;background:rgba(12,12,12,.96);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px}
+#teacherLock .lock-card{width:min(430px,100%);background:var(--card,#fff);border-radius:22px;padding:32px;box-shadow:0 25px 80px rgba(0,0,0,.35)}
+#teacherLock h2{margin:0 0 8px}.lock-sub{opacity:.7;margin-bottom:22px}
+#teacherLock input{width:100%;box-sizing:border-box;padding:13px;border-radius:10px;border:1px solid #ccc;margin:8px 0 14px}
+#teacherLock button{width:100%;padding:13px;border:0;border-radius:10px;cursor:pointer;font-weight:700}
+#teacherLock .lock-error{color:#b42318;min-height:22px;margin-top:10px;font-size:13px}
+</style>
+
+</head>
+<body><div id="loginOverlay" style="position:fixed;inset:0;background:rgba(14,12,7,.96);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px">
+  <div class="card" style="width:min(420px,100%);text-align:center">
+    <div style="font-family:var(--display);font-size:28px;font-weight:600;margin-bottom:6px">Ateliê Financeiro</div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:22px">Área exclusiva do professor</div>
+    <label style="text-align:left">Senha do professor</label>
+    <input id="teacherPassword" type="password" placeholder="Digite a senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginProfessor()">
+    <button class="btn primary" style="width:100%" onclick="loginProfessor()">Entrar</button>
+    <div id="loginError" style="color:var(--burgundy);font-size:12px;margin-top:12px;min-height:18px"></div>
+  </div>
+</div>
+<div class="shell" id="appShell" style="visibility:hidden">
+<aside class="sidebar">
+  <div class="brand">Ateliê Financeiro<small>Painel do professor</small></div>
+  <div class="stitch"></div>
+  <div class="navgroup-label">Gestão</div>
+  <a class="navitem active" data-view="dashboard" onclick="setView(this)"><span class="dot"></span>Visão geral</a>
+  <a class="navitem" data-view="equipes" onclick="setView(this)"><span class="dot"></span>Equipes</a>
+  <a class="navitem" data-view="produtos" onclick="setView(this)"><span class="dot"></span>Produtos e estoque</a>
+  <a class="navitem" data-view="vendas" onclick="setView(this)"><span class="dot"></span>Vendas</a>
+  <div class="sidebar-foot">
+    <a class="navitem" href="ateliefin_alunos_supabase_configurado.html" target="_blank" rel="noopener" style="color:#C9AF74"><span class="dot"></span>Abrir site das equipes ↗</a>
+    <span class="year-chip"><span class="dot"></span>Ano letivo 2026</span>
+    <span>Dados sincronizados com o site das equipes</span>
+  </div>
+</aside>
+<main>
+<div class="topbar">
+  <div class="page-title" id="pageTitle">Visão geral</div>
+  <div class="top-actions"><button class="btn" onclick="toggleTheme()">🌓</button><button class="btn primary" onclick="forceReload()">↻ Atualizar dados</button><button class="btn" onclick="logoutProfessor()">Sair</button></div>
+</div>
+
+<section class="view active" id="dashboard">
+  <div class="grid cols-4" style="margin-bottom:16px">
+    <div class="card tag"><div class="kpi-label">Arrecadação total</div><div class="kpi-value" id="kTotal">R$ 0,00</div><div class="kpi-delta">todas as equipes</div></div>
+    <div class="card tag"><div class="kpi-label">Equipes</div><div class="kpi-value" id="kTeams">0</div><div class="kpi-delta">cadastradas</div></div>
+    <div class="card tag"><div class="kpi-label">Produtos</div><div class="kpi-value" id="kProducts">0</div><div class="kpi-delta">no catálogo</div></div>
+    <div class="card tag"><div class="kpi-label">Itens em estoque</div><div class="kpi-value" id="kStock">0</div><div class="kpi-delta">unidades disponíveis</div></div>
+  </div>
+  <div class="grid cols-2">
+    <div class="card"><h3>Ranking das equipes</h3><div class="sub">Acompanhamento em tempo real</div><div id="ranking"></div></div>
+    <div class="card"><h3>Arrecadação por equipe</h3><div class="sub">Visão geral do desempenho</div><div class="chart-box"><canvas id="chart"></canvas></div></div>
+  </div>
+</section>
+
+<section class="view" id="equipes">
+  <div class="grid cols-2" style="margin-bottom:16px">
+    <div class="card">
+      <h3>Nova equipe</h3><div class="sub">Cadastre uma equipe para liberar o acesso dos alunos.</div>
+      <label>Nome da equipe</label><input id="teamName" placeholder="Ex.: Linha Prata">
+      <label>Integrantes</label><input id="teamMembers" placeholder="Ex.: Ana · Beto · Caio">
+      <label>Senha da equipe</label><input id="teamPass" placeholder="Senha para os alunos">
+      <button class="btn primary" style="width:100%" onclick="addTeam()">Cadastrar equipe</button>
+    </div>
+    <div class="card"><h3>Controle da atividade</h3><div class="sub">As alterações feitas aqui aparecem no site das equipes.</div>
+      <p style="font-size:13px;line-height:1.8;color:var(--text-dim)">Use esta área para criar equipes, trocar senhas e acompanhar quanto cada grupo já arrecadou. Os dados são compartilhados pelo navegador.</p>
+    </div>
+  </div>
+  <div class="card"><h3>Equipes cadastradas</h3><div class="sub">Edite a senha quando necessário.</div>
+  <table><thead><tr><th>Equipe</th><th>Integrantes</th><th>Senha</th><th>Arrecadado</th></tr></thead><tbody id="teamsBody"></tbody></table></div>
+</section>
+
+<section class="view" id="produtos">
+  <div class="grid cols-2" style="margin-bottom:16px">
+    <div class="card">
+      <h3>Novo produto</h3><div class="sub">O item entra automaticamente no catálogo dos alunos.</div>
+      <label>Nome</label><input id="prodName" placeholder="Ex.: Brinco de miçanga">
+      <label>Categoria</label><input id="prodCat" placeholder="Ex.: Bijuteria">
+      <label>Preço (R$)</label><input id="prodPrice" type="number" min="0" step=".01" placeholder="10.00">
+      <label>Quantidade</label><input id="prodQty" type="number" min="0" step="1" placeholder="20">
+      <button class="btn primary" style="width:100%" onclick="addProduct()">Adicionar produto</button>
+    </div>
+    <div class="card"><h3>Estoque</h3><div class="sub">Altere preço e quantidade diretamente na tabela.</div><p style="font-size:13px;line-height:1.8;color:var(--text-dim)">Quando um aluno confirma uma compra, o estoque é reduzido e a alteração é refletida neste painel.</p></div>
+  </div>
+  <div class="card"><h3>Produtos cadastrados</h3><div class="sub">Controle centralizado do catálogo.</div>
+  <table><thead><tr><th>Produto</th><th>Categoria</th><th>Preço</th><th>Quantidade</th><th>Status</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+</section>
+
+<section class="view" id="vendas">
+  <div class="card"><h3>Histórico geral de vendas</h3><div class="sub">Todas as vendas confirmadas pelas equipes.</div>
+  <table><thead><tr><th>Equipe</th><th>Data</th><th>Itens</th><th>Pagamento</th><th>Total</th></tr></thead><tbody id="salesBody"></tbody></table></div>
+</section>
+</main></div>
+<div class="toast" id="toast"></div>
+
+<script>
+
+const SUPABASE_URL="https://lqvxtexitlsqgidahxoi.supabase.co",SUPABASE_KEY="sb_publishable_Sv-ZlqCvApVPyNvGMk8ocw_cTkkG41n";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let loggedIn=false,groups=[],stock=[],sales=[],chart=null;
+function money(v){return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
+async function fetchData(){
+ const [a,b,c]=await Promise.all([supabaseClient.from("teams").select("*").order("name"),supabaseClient.from("products").select("*").order("name"),supabaseClient.from("sales").select("*, teams(name), products(name)").order("created_at",{ascending:false})]);
+ if(a.error)throw a.error;if(b.error)throw b.error;if(c.error)throw c.error;groups=a.data||[];stock=b.data||[];sales=c.data||[];render();
+}
+async function loginProfessor(){
+ const i=document.getElementById("teacherPassword"),e=document.getElementById("loginError"),p=i.value.trim();e.textContent="";
+ if(!p){e.textContent="Digite a senha.";return;}
+ try{const {data,error}=await supabaseClient.rpc("verify_teacher_password",{p_password:p});if(error)throw error;if(data!==true){e.textContent="Senha incorreta.";i.value="";i.focus();return;}loggedIn=true;document.getElementById("loginOverlay").style.display="none";document.getElementById("appShell").style.visibility="visible";await fetchData();}catch(x){console.error(x);e.textContent="Não foi possível validar a senha. Confira o Supabase.";}}
+function logoutProfessor(){loggedIn=false;document.getElementById("appShell").style.visibility="hidden";document.getElementById("loginOverlay").style.display="flex";document.getElementById("teacherPassword").value="";}
+async function addTeam(){const name=teamName.value.trim(),members=teamMembers.value.trim(),password=teamPass.value.trim();if(!name||!members||!password)return toast("Preencha todos os campos.");try{const {error}=await supabaseClient.from("teams").insert({name,members,password});if(error)throw error;teamName.value=teamMembers.value=teamPass.value="";await fetchData();toast("Equipe cadastrada.");}catch(e){toast(e.message||"Erro ao cadastrar equipe.");}}
+async function updatePass(i,v){const g=groups[i],{error}=await supabaseClient.from("teams").update({password:v.trim()}).eq("id",g.id);if(error)toast("Erro ao atualizar senha.");}
+async function addProduct(){const name=prodName.value.trim(),category=prodCat.value.trim(),price=Number(prodPrice.value),quantity=Number(prodQty.value);if(!name||!category||!Number.isFinite(price)||price<0||!Number.isInteger(quantity)||quantity<0)return toast("Confira os dados do produto.");try{const {error}=await supabaseClient.from("products").insert({name,category,price,quantity});if(error)throw error;prodName.value=prodCat.value=prodPrice.value=prodQty.value="";await fetchData();toast("Produto adicionado.");}catch(e){toast(e.message||"Erro ao cadastrar produto.");}}
+async function updatePrice(i,v){const n=Number(v),p=stock[i];if(!p||!Number.isFinite(n)||n<0)return;const {error}=await supabaseClient.from("products").update({price:n}).eq("id",p.id);if(error)toast("Erro ao atualizar preço.");else{p.price=n;render();}}
+async function updateQty(i,v){const n=Number(v),p=stock[i];if(!p||!Number.isInteger(n)||n<0)return;const {error}=await supabaseClient.from("products").update({quantity:n}).eq("id",p.id);if(error)toast("Erro ao atualizar estoque.");else{p.quantity=n;render();}}
+function renderDashboard(){const totals={};groups.forEach(g=>totals[g.id]=0);sales.forEach(s=>totals[s.team_id]=(totals[s.team_id]||0)+Number(s.total||0));document.getElementById("kTotal").textContent=money(Object.values(totals).reduce((a,b)=>a+b,0));document.getElementById("kTeams").textContent=groups.length;document.getElementById("kProducts").textContent=stock.length;document.getElementById("kStock").textContent=stock.reduce((a,p)=>a+Number(p.quantity||0),0);const sorted=[...groups].sort((a,b)=>(totals[b.id]||0)-(totals[a.id]||0)),max=Math.max(...sorted.map(g=>totals[g.id]||0),1);ranking.innerHTML=sorted.length?sorted.map((g,i)=>`<div class="rank-row"><div class="rank-pos">${i+1}</div><div class="rank-name">${g.name}<span>${g.members||""}</span><div class="bar-track"><div class="bar-fill" style="width:${(totals[g.id]||0)/max*100}%"></div></div></div><div class="rank-value">${money(totals[g.id]||0)}</div></div>`).join(""):`<div style="color:var(--text-dim);padding:15px">Nenhuma equipe cadastrada.</div>`;drawChart(sorted,totals);}
+function drawChart(sorted,totals){const c=document.getElementById("chart");if(!c||typeof Chart==="undefined")return;if(chart)chart.destroy();chart=new Chart(c,{type:"bar",data:{labels:sorted.map(g=>g.name),datasets:[{data:sorted.map(g=>totals[g.id]||0)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#6B6046"}},y:{beginAtZero:true,ticks:{color:"#6B6046"}}}}});}
+function renderTeams(){const totals={};sales.forEach(s=>totals[s.team_id]=(totals[s.team_id]||0)+Number(s.total||0));teamsBody.innerHTML=groups.length?groups.map((g,i)=>`<tr><td><b>${g.name}</b></td><td>${g.members||""}</td><td><input value="${g.password||""}" onchange="updatePass(${i},this.value)"></td><td style="font-family:var(--mono)">${money(totals[g.id]||0)}</td></tr>`).join(""):`<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:24px">Nenhuma equipe cadastrada.</td></tr>`;}
+function renderProducts(){productsBody.innerHTML=stock.length?stock.map((p,i)=>{const cls=p.quantity<=10?"low":p.quantity<=25?"mid":"ok",txt=p.quantity<=10?"Repor urgente":p.quantity<=25?"Atenção":"Disponível";return `<tr><td><b>${p.name}</b></td><td>${p.category||""}</td><td><input type="number" min="0" step=".01" value="${p.price}" onchange="updatePrice(${i},this.value)"></td><td><input type="number" min="0" step="1" value="${p.quantity}" onchange="updateQty(${i},this.value)"></td><td><span class="pill ${cls}">${txt}</span></td></tr>`}).join(""):`<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px">Nenhum produto cadastrado.</td></tr>`;}
+function renderSales(){salesBody.innerHTML=sales.length?sales.map(s=>`<tr><td>${s.teams?.name||"Equipe"}</td><td>${new Date(s.created_at).toLocaleString("pt-BR")}</td><td>${Number(s.quantity||0)}x ${s.products?.name||"Produto"}</td><td>${s.payment_method||"Não informado"}</td><td style="font-family:var(--mono)">${money(s.total)}</td></tr>`).join(""):`<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:24px">Nenhuma venda registrada.</td></tr>`;}
+function render(){renderDashboard();renderTeams();renderProducts();renderSales();}
+function setView(el){document.querySelectorAll(".navitem").forEach(x=>x.classList.remove("active"));el.classList.add("active");document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(el.dataset.view).classList.add("active");document.getElementById("pageTitle").textContent=el.textContent.trim();}
+function toggleTheme(){document.documentElement.dataset.theme=document.documentElement.dataset.theme==="dark"?"light":"dark";renderDashboard();}
+async function forceReload(){try{await fetchData();toast("Dados atualizados.");}catch(e){toast("Erro ao atualizar dados.");}}
+supabaseClient.channel("atelie-professores-live").on("postgres_changes",{event:"*",schema:"public",table:"teams"},()=>loggedIn&&fetchData()).on("postgres_changes",{event:"*",schema:"public",table:"products"},()=>loggedIn&&fetchData()).on("postgres_changes",{event:"*",schema:"public",table:"sales"},()=>loggedIn&&fetchData()).subscribe();
+document.addEventListener("DOMContentLoaded",()=>{const i=document.getElementById("teacherPassword");i.focus();i.addEventListener("keydown",e=>{if(e.key==="Enter")loginProfessor();});});
+
+</script>
+</body>
+</html>
